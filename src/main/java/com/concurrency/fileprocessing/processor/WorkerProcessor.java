@@ -1,5 +1,6 @@
 package com.concurrency.fileprocessing.processor;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.concurrency.fileprocessing.metrics.FileProcessingMetrics;
 import com.concurrency.fileprocessing.queue.Payload;
 import com.concurrency.fileprocessing.queue.RetryQueueService;
 import com.concurrency.fileprocessing.ratelimiter.Ratelimiter;
@@ -36,7 +38,9 @@ public class WorkerProcessor {
     private final RestTemplate restTemplate;
     private final RetryQueueService retryQueueService;
     private final Ratelimiter ratelimiter;
+    private final FileProcessingMetrics fileProcessingMetrics;
     private static final Logger logger = LoggerFactory.getLogger(WorkerProcessor.class);
+    private Integer count = 0;
 
     @Value("${external.api.url}")
     private String targetAPIURL;
@@ -47,22 +51,19 @@ public class WorkerProcessor {
     @Async("taskExecutor")
     public void processQueue(BlockingQueue<Payload> queue) {
         logger.info("processing queue: {}", queue.size());
+        
         try {
             while (true) {
                 Payload payload = queue.poll(5, TimeUnit.SECONDS);
                 
                 if (payload == null) {
+                    logger.info("Queue is empty for 5 seconds. Ending processing...");
                     break;
                 }
 
-                while (true) {
-                    Boolean allowed = ratelimiter.isAllowed("api:taxonomy", 10, 1);
-
-                    if(allowed)
-                        break;
-                    
-                    logger.debug("Rate limit exceeded");
-                    Thread.sleep(200);
+                while (!ratelimiter.isAllowed("api:taxonomy", 500, 5)) {
+                    logger.debug("Rate limit exceeded...");
+                    Thread.sleep(500);
                 }
 
                 try {
@@ -78,6 +79,7 @@ public class WorkerProcessor {
 
             }
         }catch(Exception e) {
+            fileProcessingMetrics.recordFailure();
             logger.error("Error processing queue: {}", e.getMessage());
             e.printStackTrace();
         }
@@ -88,14 +90,17 @@ public class WorkerProcessor {
     @CircuitBreaker(name = "externalApiBreaker", fallbackMethod = "fallbackApiCall")
     public CompletableFuture<Void> callExternalApi(Payload payload) {
         return CompletableFuture.runAsync(() -> {
+            count++;
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload.getPayload(), headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(targetAPIURL + "/pim/taxonomy", request, Map.class);
 
-            logger.debug("Processed file response status: {}", response.getStatusCode());
-            System.out.println("Processed file response status: " + response.getStatusCode());
+            logger.debug("Log Processed file response status: {}", response.getStatusCode());
+            System.out.println("Processed file response status: " + response.getStatusCode() + " count: " + count + " dd " + payload.getPayload().get("name"));
+            fileProcessingMetrics.recordSuccess(null);
+            // System.out.println("HTTPCOUNT: " + count);
         });
     }
 
@@ -105,9 +110,11 @@ public class WorkerProcessor {
             try {
                 retryQueueService.enqueue(new ObjectMapper().writeValueAsString(payload), 5);
             }catch(JsonProcessingException jsonEx) {
+                fileProcessingMetrics.recordFailure();
                 logger.error("Json processing error: {}", jsonEx);
             }
         }catch(RedisConnectionException ex) {
+            fileProcessingMetrics.recordFailure();
             logger.error("Redis connection failure during fallback: {}", ex);
         }
         return CompletableFuture.completedFuture(null);

@@ -67,7 +67,9 @@ public class CSVProcessorService {
             e.printStackTrace();
         }
 
-        logger.debug("File Processing completed: {}", file.getName());
+        System.out.println("count: " + result.size());
+
+        logger.debug("File Processing completed: {} and count: {}", file.getName(), result.size());
 
         return result;
     }

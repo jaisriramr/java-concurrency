@@ -4,8 +4,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,13 +25,13 @@ public class MainProcessor {
 
     public void process(File file) {
         logger.info("Main processor initiated");
-        BlockingQueue<Payload> queue = new LinkedBlockingQueue<>(100);
+        BlockingQueue<Payload> queue = new LinkedBlockingQueue<>(300);
 
         Map<String, Map<String, Object>> result = csvProcessorService.process(file);
-        
-        for(int i = 0; i < 10; i++) {
+
+        for(int i = 0; i < 20; i++) {
             logger.debug("Worker processor initiated: {}", i);
-            workerProcessor.processQueue(queue);
+            CompletableFuture.runAsync(() -> workerProcessor.processQueue(queue));
         }
 
         result.forEach((column, rowName) -> {
@@ -42,7 +42,7 @@ public class MainProcessor {
             requestPayload.put("image", null);
             requestPayload.put("attributes", rowName);
             try{
-                queue.offer(new Payload(requestPayload), 1000, TimeUnit.MILLISECONDS);
+                queue.put(new Payload(requestPayload));
             }catch(InterruptedException e) {
                 logger.error("Error in offering payload to the queue: {}", e);
                 e.printStackTrace();
