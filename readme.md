@@ -1,17 +1,19 @@
 # Concurrent File Processing System
 
-A scalable and resilient file-processing microservice that supports concurrent uploads, API calls, and retry/resiliency mechanisms using Spring Boot, Redis, Docker, and Prometheus-Grafana monitoring.
+A scalable and resilient file-processing microservice built using Spring Boot. It supports concurrent CSV file uploads, processes payloads in parallel using thread pools, communicates with external APIs, and includes robust retry mechanisms and monitoring.
 
 ---
 
 ## 🚀 Features
 
-- Concurrent CSV processing with thread-pool-backed queue system
-- Asynchronous worker execution
-- Retry with backoff, circuit breaker, and time limiter
-- Redis-based rate limiting and retry queue persistence
-- Metrics with Prometheus and Grafana
-- Dockerized for production deployment
+- Accepts CSV file uploads via REST API
+- Parses and processes CSV data concurrently
+- Handles external API calls per record
+- Rate limiting using Redis
+- Resilience with retries, circuit breaker, and time limiter
+- Retry queue persistence using Redis
+- Custom metrics via Prometheus + Grafana
+- Dockerized deployment for production readiness
 
 ---
 
@@ -20,20 +22,74 @@ A scalable and resilient file-processing microservice that supports concurrent u
 ### ⚙️ Architecture
 
 ```plaintext
-Client
-  |
-  v
-[CSV Upload API]  --->  [CSV Processor Service]
-                                |
-                                v
-                    [Concurrent Task Queue]
-                                |
-                                v
-                        [Worker Service]
-                                |
-               -----------------------------------
-               |                                 |
-     [External API Call]            [Retry Logic & Redis Queue]
-               |
-               v
-         [Business Database]
++------------------+       +----------------+       +----------------+
+|   REST API       +-----> |   CSV Parser   +-----> |  Payload Queue |
++------------------+       +----------------+       +--------+-------+
+                                                           |
+                                                           v
+                                                  +--------+-------+
+                                                  |  Worker Service |
+                                                  +--------+-------+
+                                                           |
+                                      +--------------------+-------------------+
+                                      |                    |                   |
+                                      v                    v                   v
+                              +---------------+   +---------------+   +-----------------+
+                              | Rate Limiter  |   | Retry Handler |   | External API    |
+                              |   (Redis)     |   | (Redis Queue) |   | Call (with      |
+                              |               |   |               |   | Circuit Breaker)|
+                              +---------------+   +---------------+   +-----------------+
+```
+---
+
+## 🛠️ Components
+
+| Component | Responsibility |
+|----------|----------------|
+| `FileController` | Accepts file upload and initiates processing |
+| `CsvProcessorService` | Parses CSV and pushes records to main queue |
+| `WorkerService` | Consumes tasks from queue asynchronously and calls external API |
+| `RateLimiter` | Controls external API call rate using Redis |
+| `RetryQueueService` | Handles failed messages and retries with delay |
+| `Resilience4j` | Adds fault tolerance: Retry, TimeLimiter, CircuitBreaker |
+| `Prometheus + Grafana` | Monitors metrics like success rate, failure rate, duration |
+
+---
+
+### ⚙️ Concurrency Model
+
+- **Thread Pool**: Configurable thread pool using `@Async("taskExecutor")`
+- **Queue**: Uses `BlockingQueue<Payload>` to decouple producers and consumers
+- **Retry Queue**: Custom Redis-backed retry mechanism for failed requests
+- **Rate Limiting**: Redis-backed token bucket limiter to prevent API overload
+
+---
+
+### 🔁 Retry and Resilience Strategy
+
+- **@Retryable**: Retries transient failures on external API calls (IOException, etc.)
+- **RetryQueue**: Failed tasks are persisted and retried with exponential backoff
+- **CircuitBreaker**: Opens on repeated failures to avoid overloading downstream
+- **TimeLimiter**: Prevents blocking threads for long calls
+
+---
+
+### 📊 Metrics and Monitoring
+
+| Metric Name | Description |
+|-------------|-------------|
+| `file_processing_success_total` | Counter for successful API calls |
+| `file_processing_failure_total` | Counter for failed API calls |
+| `file_processing_duration_seconds` | Summary of processing time per task |
+| `fileprocessing_retry_queue_size` | Gauge showing current retry queue length |
+| `executor_queued_tasks{name="taskExecutor"}` | Monitors worker thread queue length |
+
+Use [Grafana](https://grafana.com/) with [Prometheus](https://prometheus.io/) to visualize custom dashboards.
+
+---
+
+### 📦 Deployment Overview
+
+- Dockerized for portability
+- Redis and Prometheus are included in `docker-compose.yml`
+- Can be deployed in any cloud or local environment
