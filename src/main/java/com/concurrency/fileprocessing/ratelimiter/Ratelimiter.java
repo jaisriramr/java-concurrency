@@ -13,7 +13,7 @@ public class Ratelimiter {
 
     private final StringRedisTemplate redisTemplate;
 
-    public Boolean isAllowed(String key, int maxRequests, int windowInSeconds) {
+    public boolean isAllowed(String key, int maxRequests, int windowInSeconds) {
         String redisKey = "rate_limit:" + key;
         long currentCount = redisTemplate.opsForValue().increment(redisKey);
 

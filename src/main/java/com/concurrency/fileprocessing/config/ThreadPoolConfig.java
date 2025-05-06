@@ -28,7 +28,8 @@ public class ThreadPoolConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("CSVWorker-");
 
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-
+        
+        executor.initialize();
         return executor;
     }
 

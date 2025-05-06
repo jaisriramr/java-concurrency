@@ -25,11 +25,13 @@ public class FileProcessingController {
     @PostMapping("/process-csv")
     public ResponseEntity<String> processCSV(@RequestParam("file") MultipartFile file) throws IOException {
         
+        System.out.println("CSV dd " + file.getContentType());
+
         if(file.isEmpty()) {
             return ResponseEntity.badRequest().body("File is empty");
         }
 
-        if(file.getContentType() != "text/csv") {
+        if(!"text/csv".equals(file.getContentType())) {
             return ResponseEntity.badRequest().body("Only CSV file type is allowed");
         }
 

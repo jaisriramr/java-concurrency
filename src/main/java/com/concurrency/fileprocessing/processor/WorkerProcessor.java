@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.concurrency.fileprocessing.queue.Payload;
@@ -28,7 +29,7 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import io.lettuce.core.RedisConnectionException;
 import lombok.RequiredArgsConstructor;
 
-@Component
+@Service
 @RequiredArgsConstructor
 public class WorkerProcessor {
 
@@ -45,7 +46,7 @@ public class WorkerProcessor {
 
     @Async("taskExecutor")
     public void processQueue(BlockingQueue<Payload> queue) {
-        logger.info("processing queue");
+        logger.info("processing queue: {}", queue.size());
         try {
             while (true) {
                 Payload payload = queue.poll(5, TimeUnit.SECONDS);
@@ -57,10 +58,9 @@ public class WorkerProcessor {
                 while (true) {
                     Boolean allowed = ratelimiter.isAllowed("api:taxonomy", 10, 1);
 
-                    if(allowed) {
+                    if(allowed)
                         break;
-                    }
-
+                    
                     logger.debug("Rate limit exceeded");
                     Thread.sleep(200);
                 }
@@ -73,7 +73,6 @@ public class WorkerProcessor {
                     }catch(RedisConnectionFailureException ex) {
                         logger.error("Redis connection failed: {}", ex);
                     }
-
                     e.printStackTrace();
                 }
 
