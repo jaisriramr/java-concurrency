@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class MainProcessor {
 
     private final WorkerProcessor workerProcessor;
-    private final CSVProcessorService csvProcessorService;
     private final XLSXProcessorService xlsxProcessorService;
     private static final Logger logger = LoggerFactory.getLogger(MainProcessor.class);
     
@@ -38,13 +37,7 @@ public class MainProcessor {
     public void process(File file) {
         logger.info("Main processor initiated Queue size: "  );
 
-        // Map<String, Map<String, Object>> result = csvProcessorService.process(file);
         Map<String, Map<String, Object>> result = xlsxProcessorService.process(file);
-
-        // for(int i = 0; i < 20; i++) {
-        //     logger.debug("Worker processor initiated: {}", i);
-        //     CompletableFuture.runAsync(() -> workerProcessor.processQueue(queue));
-        // }
 
         result.forEach((column, rowName) -> {
             Map<String, Object> requestPayload = new HashMap<>();

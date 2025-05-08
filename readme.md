@@ -1,25 +1,29 @@
-# Concurrent File Processing System
+# Concurrent File Processing System (XLSX to External API Integration)
 
-A scalable and resilient file-processing microservice built using Spring Boot. It supports handling multiple XLSX file uploads simultaneously and processes the payloads from each file in parallel using thread pools. It also communicates with external APIs and includes robust retry mechanisms and monitoring.
+A scalable and resilient microservice built using Spring Boot to process uploaded `.xlsx` files in parallel. Ideal for systems that need to integrate with third-party APIs per record, such as lead ingestion, catalog syncing, or data enrichment pipelines.
 
 ---
 
 ## 🚀 Features
 
-- Accepts multiple XLSX file uploads via REST API
+### 📂 File Handling
+- Accepts multiple `.xlsx` uploads via REST API **in a single request**
 - Parses and processes XLSX data concurrently
-- Handles external API calls per record
-- Rate limiting using Redis
-- Resilience with retries, circuit breaker, and time limiter
-- Retry queue persistence using Redis
-- Custom metrics via Prometheus + Grafana
-- Dockerized deployment for production readiness
+
+### ⚙️ Concurrency and Resilience
+- Thread pool-based processing with `@Async`
+- Rate limiting via Redis (token bucket algorithm)
+- Retry handling using Redis-backed queues
+- Resilience with Resilience4j: Retry, TimeLimiter, CircuitBreaker
+
+### 📈 Monitoring and Deployment
+- Custom metrics using Prometheus and Grafana
+- Dockerized for production-readiness
+- Redis and Prometheus bundled in `docker-compose.yml`
 
 ---
 
-## 🏗️ System Design Overview
-
-### ⚙️ Architecture
+## 🧩 Architecture & Workflow
 
 ```plaintext
 +------------------+       +----------------+       +----------------+
@@ -46,8 +50,8 @@ A scalable and resilient file-processing microservice built using Spring Boot. I
 
 | Component | Responsibility |
 |----------|----------------|
-| `FileController` | Accepts file upload and initiates processing |
-| `XLSXProcessorService` | Parses XLSX and pushes records to main queue |
+| `FileController` | Accepts file upload(s) and initiates processing |
+| `XLSXProcessorService` | Parses each XLSX and pushes records to main queue |
 | `WorkerService` | Consumes tasks from queue asynchronously and calls external API |
 | `RateLimiter` | Controls external API call rate using Redis |
 | `RetryQueueService` | Handles failed messages and retries with delay |

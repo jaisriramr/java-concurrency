@@ -1,10 +1,8 @@
 package com.concurrency.fileprocessing.processor;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +12,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -54,7 +51,6 @@ public class WorkerProcessor {
         
         try {
             while (true) {
-                // Payload payload = queue.poll(5, TimeUnit.SECONDS);
                 Payload payload = queue.take();
                 
                 if (payload == null) {
@@ -101,7 +97,6 @@ public class WorkerProcessor {
             logger.debug("Log Processed file response status: {}", response.getStatusCode());
             System.out.println("Processed file response status: " + response.getStatusCode() + " count: " + count + " dd " + payload.getPayload().get("name"));
             fileProcessingMetrics.recordSuccess(null);
-            // System.out.println("HTTPCOUNT: " + count);
         });
     }
 

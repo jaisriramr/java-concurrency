@@ -12,12 +12,8 @@ import lombok.RequiredArgsConstructor;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +25,7 @@ public class FileProcessingController {
 
     private final MainProcessor processor;
 
-    @PostMapping("/process-csv")
+    @PostMapping("/process-xlsx")
     public ResponseEntity<?> processCSV(@RequestParam("files") MultipartFile[] files) throws IOException {
 
         if (files == null || files.length == 0) {
@@ -44,6 +40,8 @@ public class FileProcessingController {
                 continue;
             }
 
+            System.out.println("DDNAMMM " + file.getOriginalFilename().endsWith(".xlsx") + " dd " + !Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xlsx"));
+
             if (!Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xlsx")) {
                 return ResponseEntity.badRequest().body("Only .xlsx files are allowed");
             }
@@ -53,15 +51,6 @@ public class FileProcessingController {
                 file.transferTo(tempFile);
     
                 processor.process(tempFile);
-                // CompletableFuture.runAsync(() -> {
-                //     try {
-                //         processor.process(tempFile);
-                //     }finally {
-                //         if (tempFile.exists()) {
-                //             tempFile.delete();
-                //         }
-                //     }
-                // });
     
                 tempFile.delete();
             }catch(IOException e) {

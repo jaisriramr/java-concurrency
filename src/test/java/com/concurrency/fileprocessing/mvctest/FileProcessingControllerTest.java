@@ -24,34 +24,45 @@ public class FileProcessingControllerTest {
     @MockBean
     private MainProcessor mainProcessor;
 
-
     @Test
     void testProcessPayload() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", "sample data".getBytes());
-        
-        mockMvc.perform(multipart("/api/process-csv")
-        .file(file))
-        .andExpect(status().isOk())
-        .andExpect(content().string("File Processing Started!"));
+        MockMultipartFile file1 = new MockMultipartFile("files", "test1.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "data1".getBytes());
+        MockMultipartFile file2 = new MockMultipartFile("files", "test2.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "data2".getBytes());
+
+        mockMvc.perform(multipart("/api/process-xlsx")
+                .file(file1)
+                .file(file2))
+                .andExpect(status().isOk())
+                .andExpect(content().string("All files are being processed asynchronously."));
     }
 
     @Test
-    void testProcessCSV_EmptyFile() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "", "text/csv", new byte[0]);
+    void testOneEmptyFileAmongMultiple() throws Exception {
+        MockMultipartFile validFile = new MockMultipartFile("files", "valid.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "valid data".getBytes());
+        MockMultipartFile emptyFile = new MockMultipartFile("files", "empty.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new byte[0]);
 
-        mockMvc.perform(multipart("/api/process-csv")
-                .file(file))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("File is empty"));
+        mockMvc.perform(multipart("/api/process-xlsx")
+                .file(validFile)
+                .file(emptyFile))
+                .andExpect(status().is2xxSuccessful());
     }
 
     @Test
-    void testProcessCSV_InvalidFileType() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.txt", "text/plain", "sample data".getBytes());
+    void testInvalidFileTypeAmongMultiple() throws Exception {
+        MockMultipartFile validFile = new MockMultipartFile("files", "valid.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "valid data".getBytes());
+        MockMultipartFile invalidFile = new MockMultipartFile("files", "not_csv.txt", "text/plain",
+                "invalid".getBytes());
 
-        mockMvc.perform(multipart("/api/process-csv")
-                .file(file))
+        mockMvc.perform(multipart("/api/process-xlsx")
+                .file(validFile)
+                .file(invalidFile))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Only CSV file type is allowed"));
+                .andExpect(content().string("Only .xlsx files are allowed"));
     }
+
 }
