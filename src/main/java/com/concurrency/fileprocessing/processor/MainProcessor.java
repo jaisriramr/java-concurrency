@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import com.concurrency.fileprocessing.queue.Payload;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -21,18 +22,29 @@ public class MainProcessor {
 
     private final WorkerProcessor workerProcessor;
     private final CSVProcessorService csvProcessorService;
+    private final XLSXProcessorService xlsxProcessorService;
     private static final Logger logger = LoggerFactory.getLogger(MainProcessor.class);
+    
+    BlockingQueue<Payload> queue = new LinkedBlockingQueue<>(10000);
 
-    public void process(File file) {
-        logger.info("Main processor initiated");
-        BlockingQueue<Payload> queue = new LinkedBlockingQueue<>(300);
-
-        Map<String, Map<String, Object>> result = csvProcessorService.process(file);
-
-        for(int i = 0; i < 20; i++) {
-            logger.debug("Worker processor initiated: {}", i);
+    @PostConstruct
+    public void init() {
+        logger.info("Starting async worker consumers...");
+        for (int i = 0; i < 40; i++) {
             CompletableFuture.runAsync(() -> workerProcessor.processQueue(queue));
         }
+    }
+
+    public void process(File file) {
+        logger.info("Main processor initiated Queue size: "  );
+
+        // Map<String, Map<String, Object>> result = csvProcessorService.process(file);
+        Map<String, Map<String, Object>> result = xlsxProcessorService.process(file);
+
+        // for(int i = 0; i < 20; i++) {
+        //     logger.debug("Worker processor initiated: {}", i);
+        //     CompletableFuture.runAsync(() -> workerProcessor.processQueue(queue));
+        // }
 
         result.forEach((column, rowName) -> {
             Map<String, Object> requestPayload = new HashMap<>();

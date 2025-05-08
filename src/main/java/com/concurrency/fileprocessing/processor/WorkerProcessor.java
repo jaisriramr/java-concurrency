@@ -54,7 +54,8 @@ public class WorkerProcessor {
         
         try {
             while (true) {
-                Payload payload = queue.poll(5, TimeUnit.SECONDS);
+                // Payload payload = queue.poll(5, TimeUnit.SECONDS);
+                Payload payload = queue.take();
                 
                 if (payload == null) {
                     logger.info("Queue is empty for 5 seconds. Ending processing...");

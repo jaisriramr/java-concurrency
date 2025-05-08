@@ -1,13 +1,13 @@
 # Concurrent File Processing System
 
-A scalable and resilient file-processing microservice built using Spring Boot. It supports concurrent CSV file uploads, processes payloads in parallel using thread pools, communicates with external APIs, and includes robust retry mechanisms and monitoring.
+A scalable and resilient file-processing microservice built using Spring Boot. It supports handling multiple XLSX file uploads simultaneously and processes the payloads from each file in parallel using thread pools. It also communicates with external APIs and includes robust retry mechanisms and monitoring.
 
 ---
 
 ## 🚀 Features
 
-- Accepts CSV file uploads via REST API
-- Parses and processes CSV data concurrently
+- Accepts XLSX files uploads via REST API
+- Parses and processes XLSX data concurrently
 - Handles external API calls per record
 - Rate limiting using Redis
 - Resilience with retries, circuit breaker, and time limiter
@@ -23,7 +23,7 @@ A scalable and resilient file-processing microservice built using Spring Boot. I
 
 ```plaintext
 +------------------+       +----------------+       +----------------+
-|   REST API       +-----> |   CSV Parser   +-----> |  Payload Queue |
+|   REST API       +-----> |   XLSX Parser   +-----> |  Payload Queue |
 +------------------+       +----------------+       +--------+-------+
                                                            |
                                                            v
@@ -47,7 +47,7 @@ A scalable and resilient file-processing microservice built using Spring Boot. I
 | Component | Responsibility |
 |----------|----------------|
 | `FileController` | Accepts file upload and initiates processing |
-| `CsvProcessorService` | Parses CSV and pushes records to main queue |
+| `XLSXProcessorService` | Parses XLSX and pushes records to main queue |
 | `WorkerService` | Consumes tasks from queue asynchronously and calls external API |
 | `RateLimiter` | Controls external API call rate using Redis |
 | `RetryQueueService` | Handles failed messages and retries with delay |

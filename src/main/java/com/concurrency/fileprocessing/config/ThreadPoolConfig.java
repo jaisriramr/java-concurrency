@@ -23,7 +23,7 @@ public class ThreadPoolConfig implements AsyncConfigurer {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(20);
         executor.setMaxPoolSize(40);
-        executor.setQueueCapacity(1000);
+        executor.setQueueCapacity(5000);
         // executor.setKeepAliveSeconds(60);
         executor.setThreadNamePrefix("CSVWorker-");
 

@@ -11,7 +11,14 @@ import lombok.RequiredArgsConstructor;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 
@@ -23,27 +30,52 @@ public class FileProcessingController {
     private final MainProcessor processor;
 
     @PostMapping("/process-csv")
-    public ResponseEntity<String> processCSV(@RequestParam("file") MultipartFile file) throws IOException {
-        
-        System.out.println("CSV dd " + file.getContentType());
+    public ResponseEntity<?> processCSV(@RequestParam("files") MultipartFile[] files) throws IOException {
 
-        if(file.isEmpty()) {
-            return ResponseEntity.badRequest().body("File is empty");
+        if (files == null || files.length == 0) {
+            return ResponseEntity.badRequest().body("No files uploaded");
         }
 
-        if(!"text/csv".equals(file.getContentType())) {
-            return ResponseEntity.badRequest().body("Only CSV file type is allowed");
-        }
+        List<String> failedFiles = new ArrayList<>();
 
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                failedFiles.add(file.getOriginalFilename() + " (empty)");
+                continue;
+            }
 
-        File tempFile = File.createTempFile("uploaded-", ".csv");
-        file.transferTo(tempFile);
+            if (!Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xlsx")) {
+                return ResponseEntity.badRequest().body("Only .xlsx files are allowed");
+            }
 
-        processor.process(tempFile);
-
-        return ResponseEntity.ok("File Processing Started!");
-
-    }
+            try {
+                File tempFile = File.createTempFile("uploaded-", ".xlsx");
+                file.transferTo(tempFile);
     
+                processor.process(tempFile);
+                // CompletableFuture.runAsync(() -> {
+                //     try {
+                //         processor.process(tempFile);
+                //     }finally {
+                //         if (tempFile.exists()) {
+                //             tempFile.delete();
+                //         }
+                //     }
+                // });
+    
+                tempFile.delete();
+            }catch(IOException e) {
+                failedFiles.add(file.getOriginalFilename() + " (error: " + e.getMessage() + ")");
+            }
+
+        }
+
+        if (failedFiles.isEmpty()) {
+            return ResponseEntity.ok("All files are being processed asynchronously.");
+        } else {
+            return ResponseEntity.status(HttpStatus.MULTI_STATUS)
+                    .body("Some files failed: " + String.join(", ", failedFiles));
+        }
+    }
 
 }
