@@ -6,7 +6,7 @@ A scalable and resilient file-processing microservice built using Spring Boot. I
 
 ## 🚀 Features
 
-- Accepts XLSX files uploads via REST API
+- Accepts multiple XLSX file uploads via REST API
 - Parses and processes XLSX data concurrently
 - Handles external API calls per record
 - Rate limiting using Redis
