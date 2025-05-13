@@ -1,6 +1,6 @@
 # Concurrent File Processing System (XLSX to External API Integration)
 
-A scalable and resilient microservice built using Spring Boot to process uploaded `.xlsx` files in parallel. Ideal for systems that need to integrate with third-party APIs per record, such as lead ingestion, catalog syncing, or data enrichment pipelines.
+A scalable and resilient File Processing System built using Spring Boot to process uploaded `.xlsx` files in parallel. Ideal for systems that need to integrate with third-party APIs per record, such as lead ingestion, catalog syncing, or data enrichment pipelines.
 
 ---
 
